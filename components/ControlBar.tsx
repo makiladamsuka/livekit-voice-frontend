@@ -41,6 +41,27 @@ export default function ControlBar({ onDisconnect, onToggleChat, isChatOpen }: C
     };
   }, [selectedDevice]);
 
+  useEffect(() => {
+    if (!localParticipant) return;
+
+    // Sync mute state with participant
+    const updateMuteState = () => {
+      const isMicEnabled = localParticipant.isMicrophoneEnabled;
+      setIsMuted(!isMicEnabled);
+    };
+
+    updateMuteState();
+
+    // Listen for track muted/unmuted events
+    localParticipant.on("trackMuted", updateMuteState);
+    localParticipant.on("trackUnmuted", updateMuteState);
+
+    return () => {
+      localParticipant.off("trackMuted", updateMuteState);
+      localParticipant.off("trackUnmuted", updateMuteState);
+    };
+  }, [localParticipant]);
+
   const toggleMute = async () => {
     if (!localParticipant) return;
 
@@ -54,16 +75,9 @@ export default function ControlBar({ onDisconnect, onToggleChat, isChatOpen }: C
 
   const handleDeviceChange = async (deviceId: string) => {
     setSelectedDevice(deviceId);
-    
-    if (!localParticipant) return;
-
-    try {
-      // Re-enable microphone with new device
-      await localParticipant.setMicrophoneEnabled(false);
-      await localParticipant.setMicrophoneEnabled(true);
-    } catch (err) {
-      console.error("Error switching microphone:", err);
-    }
+    // Note: Device switching requires stopping and recreating the track with the new device
+    // This is a simplified implementation. For production, consider using switchActiveDevice
+    // or implementing proper device switching with getUserMedia constraints
   };
 
   return (

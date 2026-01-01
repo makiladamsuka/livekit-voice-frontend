@@ -75,16 +75,20 @@ export function useTranscription() {
       }
     };
 
-    const unsubscribes = remoteParticipants.map((participant) => {
+    const handlers = new Map<Participant, (segments: TranscriptionSegment[]) => void>();
+
+    remoteParticipants.forEach((participant) => {
       const handler = (segments: TranscriptionSegment[]) => {
         handleRemoteTranscription(participant, segments);
       };
+      handlers.set(participant, handler);
       participant.on("transcriptionReceived", handler);
-      return () => participant.off("transcriptionReceived", handler);
     });
 
     return () => {
-      unsubscribes.forEach((unsub) => unsub());
+      handlers.forEach((handler, participant) => {
+        participant.off("transcriptionReceived", handler);
+      });
     };
   }, [remoteParticipants]);
 
